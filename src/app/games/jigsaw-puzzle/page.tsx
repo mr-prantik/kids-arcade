@@ -1,7 +1,12 @@
-export default function Page() {
+"use client";
+
+import JigsawPuzzle from "@/components/games/JigsawPuzzle";
+
+export default function JigsawPuzzlePage() {
   return (
-    <main className="flex h-screen items-center justify-center text-2xl">
-      <p>jigsaw-puzzle will go here 🎲</p>
-    </main>
+    <div className="flex flex-col items-center p-6">
+      <h1 className="text-2xl font-bold mb-4">🧩 Jigsaw Puzzle</h1>
+      <JigsawPuzzle />
+    </div>
   );
 }
