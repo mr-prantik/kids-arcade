@@ -226,7 +226,7 @@ export default function JigsawPuzzle() {
     try {
       const res = await fetch(
         `https://pixabay.com/api/?key=${
-          process.env.PUBLIC_PIXABAY
+          process.env.NEXT_PUBLIC_PIXABAY
         }&q=cartoon+animal&image_type=illustration&safesearch=true&per_page=50`
       );
       const data = await res.json();
