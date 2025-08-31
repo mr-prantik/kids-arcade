@@ -27,6 +27,7 @@ const games = [
   { name: "Whack-a-Mole", path: "/games/whack-a-mole", emoji: "🔨" },
   { name: "Rock Paper Scissors", path: "/games/rock-paper-scissors", emoji: "✊✋✌️" },
   { name: "Balloon Pop", path: "/games/balloon-pop", emoji: "🎈" },
+  {name: "Plane Simulator", path: "/games/plane-simulator", emoji: "🌀"},
 ];
 
 export default function Home() {
