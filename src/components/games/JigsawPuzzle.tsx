@@ -1,202 +1,146 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useDrag, useDrop, DndProvider } from "react-dnd";
+import React, { useState, useEffect } from "react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { useSound } from "@/providers/SoundProvider";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-type Piece = {
+type PieceProps = {
   id: number;
-  correctPos: number;
-  currentPos: number | null; // null = still in bank
-  imgX: number;
-  imgY: number;
+  index: number;
+  image: string;
+  size: number;
+  gridSize: number;
+  movePiece: (from: number, to: number) => void;
 };
 
-const PIECE_SIZE = 100;
-
-const ItemTypes = {
-  PIECE: "piece",
-};
-
-function PuzzlePiece({
-  piece,
-  onDropPiece,
-}: {
-  piece: Piece | null;
-  onDropPiece: (pieceId: number) => void;
-}) {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: ItemTypes.PIECE,
-    drop: (dragged: { id: number }) => onDropPiece(dragged.id),
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
+// Draggable Puzzle Piece
+function Piece({ id, index, image, size, gridSize, movePiece }: PieceProps) {
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: "PIECE",
+      item: { index },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
     }),
-  }));
-
-  return (
-    <div
-      ref={drop}
-      className={`border border-gray-300 bg-gray-100 flex items-center justify-center transition-colors ${
-        isOver ? "bg-yellow-100" : ""
-      }`}
-      style={{ width: PIECE_SIZE, height: PIECE_SIZE }}
-    >
-      {piece && (
-        <div
-          className="w-full h-full bg-cover"
-          style={{
-            backgroundImage: "url('/images/puzzle.jpg')", // default fallback
-            backgroundPosition: `${piece.imgX}px ${piece.imgY}px`,
-            backgroundSize: "cover",
-          }}
-        />
-      )}
-    </div>
+    [index]
   );
-}
 
-function DraggablePiece({ piece }: { piece: Piece }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: ItemTypes.PIECE,
-    item: { id: piece.id },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+  const [, drop] = useDrop(
+    () => ({
+      accept: "PIECE",
+      drop: (item: { index: number }) => {
+        movePiece(item.index, index);
+      },
     }),
-  }));
+    [index, movePiece]
+  );
+
+  const x = (id % gridSize) * size;
+  const y = Math.floor(id / gridSize) * size;
 
   return (
     <div
-      ref={drag}
-      className="border border-gray-400 bg-gray-200 cursor-grab active:cursor-grabbing"
+      ref={(node) => drag(drop(node))}
+      className="border border-gray-300"
       style={{
+        width: size,
+        height: size,
+        backgroundImage: `url(${image})`,
+        backgroundSize: `${gridSize * size}px ${gridSize * size}px`,
+        backgroundPosition: `-${x}px -${y}px`,
         opacity: isDragging ? 0.5 : 1,
-        width: PIECE_SIZE,
-        height: PIECE_SIZE,
-        backgroundImage: "url('/images/puzzle.jpg')",
-        backgroundPosition: `${piece.imgX}px ${piece.imgY}px`,
-        backgroundSize: "cover",
+        cursor: "grab",
       }}
     />
   );
 }
 
 export default function JigsawPuzzle() {
-  const { playSound } = useSound();
   const [gridSize, setGridSize] = useState(2);
-  const [pieces, setPieces] = useState<Piece[]>([]);
-  const [imageUrl, setImageUrl] = useState("/images/puzzle.jpg");
+  const [pieces, setPieces] = useState<number[]>([]);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const pieceSize = 100;
 
-  // fetch a random online image
-  const fetchPuzzleImage = () => {
-    // Kids-friendly safe sources (Pixabay, Unsplash with "cartoon"/"animals")
-    const urls = [
-      "https://picsum.photos/400/400?random=1", // placeholder
-      "https://picsum.photos/400/400?random=2",
-      "https://picsum.photos/400/400?random=3",
-    ];
-    const pick = urls[Math.floor(Math.random() * urls.length)];
-    setImageUrl(pick);
-  };
+  // Shuffle utility
+  const shuffle = (array: number[]) =>
+    [...array].sort(() => Math.random() - 0.5);
 
-  useEffect(() => {
-    initPuzzle(gridSize);
-  }, [gridSize, imageUrl]);
-
-  const initPuzzle = (size: number) => {
-    const init: Piece[] = [];
-    let id = 0;
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        init.push({
-          id,
-          correctPos: id,
-          currentPos: null,
-          imgX: -x * (PIECE_SIZE),
-          imgY: -y * (PIECE_SIZE),
-        });
-        id++;
+  // Fetch random image from Pixabay
+  const fetchImage = async () => {
+    try {
+      const res = await fetch(
+        `https://pixabay.com/api/?key=${
+          process.env.NEXT_PUBLIC_PIXABAY_KEY
+        }&q=cartoon+animal&image_type=illustration&safesearch=true&per_page=50`
+      );
+      const data = await res.json();
+      if (data.hits?.length) {
+        const randomImg =
+          data.hits[Math.floor(Math.random() * data.hits.length)].webformatURL;
+        setImageUrl(randomImg);
+      } else {
+        toast.error("No puzzle images found.");
       }
+    } catch (e) {
+      toast.error("Error fetching puzzle image.");
     }
-    setPieces(init.sort(() => Math.random() - 0.5));
   };
 
-  const handleDrop = (targetIndex: number, pieceId: number) => {
-    setPieces((prev) =>
-      prev.map((p) =>
-        p.id === pieceId ? { ...p, currentPos: targetIndex } : p
-      )
-    );
-    playSound("/sounds/click.mp3");
+  // Reset game with new shuffled pieces
+  const resetGame = () => {
+    const total = gridSize * gridSize;
+    setPieces(shuffle([...Array(total).keys()]));
+    fetchImage();
   };
 
-  const isComplete =
-    pieces.length > 0 && pieces.every((p) => p.currentPos === p.correctPos);
+  // On mount or grid change → reset
+  useEffect(() => {
+    resetGame();
+  }, [gridSize]);
+
+  // Move piece handler
+  const movePiece = (from: number, to: number) => {
+    const updated = [...pieces];
+    [updated[from], updated[to]] = [updated[to], updated[from]];
+    setPieces(updated);
+  };
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="flex flex-col items-center">
-        {/* Top Controls */}
-        <div className="flex gap-4 mb-4">
-          <label className="font-semibold">Grid:</label>
-          {[2, 3, 4].map((n) => (
-            <button
-              key={n}
-              onClick={() => setGridSize(n)}
-              className={`px-3 py-1 rounded ${
-                gridSize === n
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 hover:bg-gray-300"
-              }`}
-            >
-              {n}×{n}
-            </button>
-          ))}
-          <button
-            onClick={fetchPuzzleImage}
-            className="ml-4 px-3 py-1 bg-pink-500 text-white rounded hover:bg-pink-600"
-          >
-            🔄 New Image
-          </button>
-        </div>
+    <div className="flex flex-col items-center space-y-4 p-4">
+      <h1 className="text-2xl font-bold">Jigsaw Puzzle</h1>
 
-        {/* Puzzle Grid */}
+      {/* Controls */}
+      <div className="flex gap-2">
+        <Button onClick={() => setGridSize(2)}>2×2</Button>
+        <Button onClick={() => setGridSize(3)}>3×3</Button>
+        <Button onClick={() => setGridSize(4)}>4×4</Button>
+        <Button onClick={resetGame}>🔄 New Puzzle</Button>
+      </div>
+
+      {/* Puzzle Board */}
+      <DndProvider backend={HTML5Backend}>
         <div
-          className="grid border-2 border-gray-400 mb-6"
+          className="grid gap-1"
           style={{
-            gridTemplateColumns: `repeat(${gridSize}, ${PIECE_SIZE}px)`,
-            gridTemplateRows: `repeat(${gridSize}, ${PIECE_SIZE}px)`,
+            gridTemplateColumns: `repeat(${gridSize}, ${pieceSize}px)`,
           }}
         >
-          {Array.from({ length: gridSize * gridSize }).map((_, idx) => {
-            const piece = pieces.find((p) => p.currentPos === idx) || null;
-            return (
-              <PuzzlePiece
-                key={idx}
-                piece={piece && { ...piece, imgX: piece.imgX, imgY: piece.imgY }}
-                onDropPiece={(pieceId) => handleDrop(idx, pieceId)}
-              />
-            );
-          })}
+          {pieces.map((id, idx) => (
+            <Piece
+              key={idx}
+              id={id}
+              index={idx}
+              image={imageUrl}
+              size={pieceSize}
+              gridSize={gridSize}
+              movePiece={movePiece}
+            />
+          ))}
         </div>
-
-        {/* Piece Bank */}
-        <h2 className="font-semibold mb-2">Pieces left:</h2>
-        <div className="flex flex-wrap gap-2">
-          {pieces
-            .filter((p) => p.currentPos === null)
-            .map((p) => (
-              <DraggablePiece key={p.id} piece={p} />
-            ))}
-        </div>
-
-        {/* Completion Message */}
-        {isComplete && (
-          <div className="mt-4 text-green-600 font-bold text-xl animate-bounce">
-            🎉 You solved it!
-          </div>
-        )}
-      </div>
-    </DndProvider>
+      </DndProvider>
+    </div>
   );
 }

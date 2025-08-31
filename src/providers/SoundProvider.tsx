@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Howl } from "howler";
+import  Howl  from "howler";
 
 type SoundContextType = {
   muted: boolean;
