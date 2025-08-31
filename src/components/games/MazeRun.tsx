@@ -116,14 +116,6 @@ import { useSessionState } from "@/providers/SessionStateProvider";
 import { toast } from "sonner";
 import { useSound } from "@/providers/SoundProvider";
 
-// define the type of SessionState (adapt as per your provider)
-interface SessionState {
-  scores: Record<string, number>;
-  getScore?: (key: string) => number;
-  incScore?: (key: string, delta?: number) => void;
-  setScores?: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-}
-
 /**
  * Maze Run – simple grid maze
  * Player moves with arrow keys / WASD to reach the goal.
@@ -145,24 +137,13 @@ const START_POS = { x: 0, y: 0 };
 const GOAL_POS = { x: 6, y: 6 };
 
 export default function MazeRun() {
-  const session = useSessionState() as SessionState;
+  const { games, updateScore } = useSessionState();
   const sound = useSound?.();
 
-  const getScore = (key: string): number =>
-    session?.getScore?.(key) ?? session?.scores?.[key] ?? 0;
-
-  const incScore = (key: string, delta = 1): void => {
-    if (session?.incScore) {
-      session.incScore(key, delta);
-    } else if (session?.setScores) {
-      session.setScores((prev) => ({
-        ...(prev || {}),
-        [key]: (prev?.[key] ?? 0) + delta,
-      }));
-    }
-  };
-
   const [player, setPlayer] = useState(START_POS);
+
+  // Get current score from games object
+  const score = games["mazeRun"]?.score ?? 0;
 
   const handleMove = useCallback((dx: number, dy: number) => {
     setPlayer((prev) => {
@@ -196,17 +177,17 @@ export default function MazeRun() {
   // check win
   useEffect(() => {
     if (player.x === GOAL_POS.x && player.y === GOAL_POS.y) {
-      incScore("mazeRun", 1);
+      updateScore("mazeRun", 1); // increment score
       toast.success("🎉 You reached the goal!");
       try { sound?.playSound?.("/sounds/success.mp3"); } catch {}
       setPlayer(START_POS); // restart
     }
-  }, [player, sound]);
+  }, [player, updateScore, sound]);
 
   return (
     <div className="flex flex-col items-center p-6">
       <h1 className="text-2xl font-bold mb-4">Maze Run</h1>
-      <div className="mb-2">Score: {getScore("mazeRun")}</div>
+      <div className="mb-2">Score: {score}</div>
       <div className="grid" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 40px)` }}>
         {MAZE_LAYOUT.map((row, y) =>
           row.map((cell, x) => {
@@ -233,3 +214,4 @@ export default function MazeRun() {
     </div>
   );
 }
+

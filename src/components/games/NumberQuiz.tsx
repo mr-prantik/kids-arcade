@@ -128,7 +128,10 @@ function generateProblem(): Problem {
 
 export default function NumberQuiz() {
   const [problem, setProblem] = useState<Problem | null>(null);
-  const { scores, incScore, resetScore, getScore } = useSessionState();
+  const { games, updateScore } = useSessionState();
+
+  // helper to get current score
+  const getScore = (key: string) => games[key]?.score ?? 0;
 
   useEffect(() => {
     setProblem(generateProblem());
@@ -136,9 +139,10 @@ export default function NumberQuiz() {
 
   const handleAnswer = (opt: number) => {
     if (!problem) return;
+
     if (opt === problem.answer) {
       toast.success("Correct! 🎉");
-      incScore("numberQuiz", 1); // ✅ use incScore instead of setScores
+      updateScore("numberQuiz", 1); // increment score in new provider
       setProblem(generateProblem());
     } else {
       toast.error("Oops, try again!");
@@ -146,7 +150,8 @@ export default function NumberQuiz() {
   };
 
   const resetQuiz = () => {
-    resetScore("numberQuiz"); // ✅ use resetScore instead of setScores
+    // reset by setting score to 0
+    updateScore("numberQuiz", 0 - getScore("numberQuiz"));
     setProblem(generateProblem());
   };
 
