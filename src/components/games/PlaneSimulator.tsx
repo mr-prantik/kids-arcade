@@ -9,30 +9,38 @@ const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 600;
 const PLANE_WIDTH = 40;
 const PLANE_HEIGHT = 40;
-const OBSTACLE_WIDTH = 40;
-const OBSTACLE_HEIGHT = 40;
-const OBSTACLE_SPEED = 4;
-const SPAWN_INTERVAL = 1200;
+const ENEMY_WIDTH = 40;
+const ENEMY_HEIGHT = 40;
 
-type Obstacle = {
-  x: number;
-  y: number;
-};
+const ENEMY_SPEED = 1.5;
+const BULLET_WIDTH = 5;
+const BULLET_HEIGHT = 10;
+const BULLET_SPEED = 3;
+const ENEMY_BULLET_SPEED = 2;
+const SPAWN_INTERVAL = 1500;
+const FIRE_INTERVAL = 300;
+
+type Enemy = { x: number; y: number };
+type Bullet = { x: number; y: number; from: "player" | "enemy" };
 
 export default function PlaneSimulator() {
   const { updateScore, games } = useSessionState();
   const { playSound } = useSound();
+  const scoreKey = "plane-simulator";
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [planeX, setPlaneX] = useState(CANVAS_WIDTH / 2 - PLANE_WIDTH / 2);
-  const [obstacles, setObstacles] = useState<Obstacle[]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
-  const scoreKey = "plane-simulator";
 
   const getScore = () => games[scoreKey]?.score ?? 0;
 
-  // Keyboard controls
+  // game objects (kept in refs for sync updates)
+  const enemiesRef = useRef<Enemy[]>([]);
+  const bulletsRef = useRef<Bullet[]>([]);
+
+  // keyboard controls
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if (gameOver) return;
@@ -43,74 +51,140 @@ export default function PlaneSimulator() {
     return () => window.removeEventListener("keydown", listener);
   }, [gameOver]);
 
-  // Obstacle spawn
+  // mobile touch controls
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handleTouch = (e: TouchEvent) => {
+      if (gameOver) return;
+      const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+      setPlaneX(Math.min(Math.max(touchX - PLANE_WIDTH / 2, 0), CANVAS_WIDTH - PLANE_WIDTH));
+    };
+    canvas.addEventListener("touchmove", handleTouch);
+    return () => canvas.removeEventListener("touchmove", handleTouch);
+  }, [gameOver]);
+
+  // spawn enemies
   useEffect(() => {
     if (gameOver) return;
     const spawn = setInterval(() => {
-      const x = Math.floor(Math.random() * (CANVAS_WIDTH - OBSTACLE_WIDTH));
-      setObstacles((prev) => [...prev, { x, y: -OBSTACLE_HEIGHT }]);
+      const x = Math.floor(Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH));
+      enemiesRef.current.push({ x, y: -ENEMY_HEIGHT });
     }, SPAWN_INTERVAL);
     return () => clearInterval(spawn);
   }, [gameOver]);
 
-  // Game loop
+  // player auto fire
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const ctx = canvasRef.current.getContext("2d");
+    if (gameOver) return;
+    const fire = setInterval(() => {
+      bulletsRef.current.push({
+        x: planeX + PLANE_WIDTH / 2 - BULLET_WIDTH / 2,
+        y: CANVAS_HEIGHT - PLANE_HEIGHT - 20,
+        from: "player",
+      });
+      playSound?.("/sounds/shoot.mp3");
+    }, FIRE_INTERVAL);
+    return () => clearInterval(fire);
+  }, [planeX, gameOver, playSound]);
+
+  // enemy fire
+  useEffect(() => {
+    if (gameOver) return;
+    const fire = setInterval(() => {
+      enemiesRef.current.forEach((enemy) => {
+        bulletsRef.current.push({
+          x: enemy.x + ENEMY_WIDTH / 2 - BULLET_WIDTH / 2,
+          y: enemy.y + ENEMY_HEIGHT,
+          from: "enemy",
+        });
+      });
+    }, 1200);
+    return () => clearInterval(fire);
+  }, [gameOver]);
+
+  // main loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationFrame: number;
+    let animationId: number;
 
     const loop = () => {
-      if (!ctx) return;
-
-      // clear canvas
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // move obstacles
-      setObstacles((prev) =>
-        prev
-          .map((o) => ({ ...o, y: o.y + OBSTACLE_SPEED }))
-          .filter((o) => o.y < CANVAS_HEIGHT)
-      );
-
-      // draw plane
+      // draw player
       ctx.fillStyle = "blue";
       ctx.fillRect(planeX, CANVAS_HEIGHT - PLANE_HEIGHT - 10, PLANE_WIDTH, PLANE_HEIGHT);
 
-      // draw obstacles
+      // move enemies
+      enemiesRef.current = enemiesRef.current
+        .map((e) => ({ ...e, y: e.y + ENEMY_SPEED }))
+        .filter((e) => e.y < CANVAS_HEIGHT);
+
+      // draw enemies
       ctx.fillStyle = "red";
-      obstacles.forEach((o) => ctx.fillRect(o.x, o.y, OBSTACLE_WIDTH, OBSTACLE_HEIGHT));
+      enemiesRef.current.forEach((e) => ctx.fillRect(e.x, e.y, ENEMY_WIDTH, ENEMY_HEIGHT));
 
-      // check collision
-      for (const o of obstacles) {
-        if (
-          o.x < planeX + PLANE_WIDTH &&
-          o.x + OBSTACLE_WIDTH > planeX &&
-          o.y < CANVAS_HEIGHT - PLANE_HEIGHT - 10 + PLANE_HEIGHT &&
-          o.y + OBSTACLE_HEIGHT > CANVAS_HEIGHT - PLANE_HEIGHT - 10
-        ) {
-          // collision: stop game
-          setGameOver(true);
-          setFinalScore(getScore());
-          toast.error(`💥 You crashed! Final Score: ${getScore()}`);
-          playSound?.("/sounds/crash.mp3");
-          return; // stop loop
+      // move bullets
+      bulletsRef.current = bulletsRef.current
+        .map((b) => ({
+          ...b,
+          y: b.from === "player" ? b.y - BULLET_SPEED : b.y + ENEMY_BULLET_SPEED,
+        }))
+        .filter((b) => b.y > 0 && b.y < CANVAS_HEIGHT);
+
+      // draw bullets
+      ctx.fillStyle = "yellow";
+      bulletsRef.current.forEach((b) => ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT));
+
+      // collision detection
+      bulletsRef.current.forEach((b) => {
+        if (b.from === "player") {
+          enemiesRef.current.forEach((e) => {
+            if (
+              b.x < e.x + ENEMY_WIDTH &&
+              b.x + BULLET_WIDTH > e.x &&
+              b.y < e.y + ENEMY_HEIGHT &&
+              b.y + BULLET_HEIGHT > e.y
+            ) {
+              // hit enemy
+              enemiesRef.current = enemiesRef.current.filter((en) => en !== e);
+              bulletsRef.current = bulletsRef.current.filter((bl) => bl !== b);
+              updateScore(scoreKey, 100);
+              playSound?.("/sounds/explosion.mp3");
+            }
+          });
+        } else {
+          // enemy bullet vs player
+          if (
+            b.x < planeX + PLANE_WIDTH &&
+            b.x + BULLET_WIDTH > planeX &&
+            b.y < CANVAS_HEIGHT - PLANE_HEIGHT - 10 + PLANE_HEIGHT &&
+            b.y + BULLET_HEIGHT > CANVAS_HEIGHT - PLANE_HEIGHT - 10
+          ) {
+            setGameOver(true);
+            setFinalScore(getScore());
+            toast.error(`💥 You got shot! Final Score: ${getScore()}`);
+            playSound?.("/sounds/crash.mp3");
+          }
         }
-      }
+      });
 
-      // update score
       if (!gameOver) updateScore(scoreKey, 1);
 
-      animationFrame = requestAnimationFrame(loop);
+      animationId = requestAnimationFrame(loop);
     };
 
-    animationFrame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [planeX, obstacles, gameOver, updateScore, playSound]);
+    animationId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationId);
+  }, [planeX, gameOver, updateScore, playSound]);
 
   const resetGame = () => {
-    setObstacles([]);
+    enemiesRef.current = [];
+    bulletsRef.current = [];
     setPlaneX(CANVAS_WIDTH / 2 - PLANE_WIDTH / 2);
     setGameOver(false);
     setFinalScore(0);
@@ -121,15 +195,13 @@ export default function PlaneSimulator() {
     <div className="flex flex-col items-center p-6">
       <h1 className="text-2xl font-bold mb-4">Plane Simulator</h1>
 
-      <p className="text-lg mb-2">
-        Score: {gameOver ? finalScore : getScore()}
-      </p>
+      <p className="text-lg mb-2">Score: {gameOver ? finalScore : getScore()}</p>
 
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
-        className="border bg-white shadow"
+        className="border bg-white shadow touch-none"
       />
 
       {gameOver && (
@@ -146,7 +218,7 @@ export default function PlaneSimulator() {
       </button>
 
       <p className="mt-2 text-sm text-muted-foreground">
-        Use Left/Right arrows to move
+        Use Left/Right arrows (desktop) or swipe/drag (mobile) to move. Plane fires automatically. 🚀
       </p>
     </div>
   );
