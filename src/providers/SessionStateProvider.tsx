@@ -61,53 +61,53 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
-type Scores = Record<string, number>;
+export type GameSession = {
+  score: number;
+  time: number;
+};
 
 export type SessionStateContextType = {
-  scores: Scores;
-  getScore: (key: string) => number;
-  setScore: (key: string, value: number) => void;
-  incScore: (key: string, delta?: number) => void;
-  resetScore: (key?: string) => void;
+  games: Record<string, GameSession>;
+  updateScore: (gameKey: string, delta: number) => void;
+  setTime: (gameKey: string, time: number) => void;
 };
 
 const SessionStateContext = createContext<SessionStateContextType | undefined>(undefined);
 
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
-  const [scores, setScores] = useState<Scores>({});
+  const [games, setGames] = useState<Record<string, GameSession>>({});
 
-  useEffect(() => {
-    console.log("[SessionStateProvider] mounted");
-    return () => {
-      console.log("[SessionStateProvider] unmounted");
-    };
-  }, []);
+  const updateScore = (gameKey: string, delta: number) => {
+    setGames((prev) => ({
+      ...prev,
+      [gameKey]: {
+        score: (prev[gameKey]?.score ?? 0) + delta,
+        time: prev[gameKey]?.time ?? 0,
+      },
+    }));
+  };
 
-  const getScore = (key: string) => scores[key] ?? 0;
-  const setScore = (key: string, value: number) =>
-    setScores((prev) => ({ ...prev, [key]: value }));
-  const incScore = (key: string, delta = 1) =>
-    setScores((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + delta }));
-  const resetScore = (key?: string) => {
-    if (key) setScores((prev) => ({ ...prev, [key]: 0 }));
-    else setScores({});
+  const setTime = (gameKey: string, time: number) => {
+    setGames((prev) => ({
+      ...prev,
+      [gameKey]: {
+        score: prev[gameKey]?.score ?? 0,
+        time,
+      },
+    }));
   };
 
   return (
-    <SessionStateContext.Provider
-      value={{ scores, getScore, setScore, incScore, resetScore }}
-    >
+    <SessionStateContext.Provider value={{ games, updateScore, setTime }}>
       {children}
     </SessionStateContext.Provider>
   );
 }
 
-export function useSessionState(): SessionStateContextType {
+export function useSessionState() {
   const ctx = useContext(SessionStateContext);
-  if (!ctx) {
-    throw new Error("useSessionState must be used inside SessionStateProvider");
-  }
+  if (!ctx) throw new Error("useSessionState must be used within SessionStateProvider");
   return ctx;
 }
