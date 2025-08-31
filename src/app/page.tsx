@@ -59,6 +59,7 @@ const games = [
   { name: "Rock Paper Scissors", emoji: "✊✋✌️", path: "/games/rock-paper-scissors" },
   { name: "Balloon Pop", emoji: "🎈", path: "/games/balloon-pop" },
   { name: "Plane Simulator", emoji: "✈️", path: "/games/plane-simulator" },
+  {name: "Paltformer", emoji: "⌨️", path: "/games/platformer"},
 ];
 
 export default function GamesLanding() {
