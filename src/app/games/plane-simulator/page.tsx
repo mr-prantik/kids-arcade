@@ -1,6 +1,12 @@
-import PlaneSimulator from "@/components/games/PlaneSimulator";
+"use client";
 
+import dynamic from "next/dynamic";
 
-export default function PlaneSimulatorPage() {
+const PlaneSimulator = dynamic(
+  () => import("@/components/games/PlaneSimulator"),
+  { ssr: false }
+);
+
+export default function Page() {
   return <PlaneSimulator />;
 }
