@@ -66,7 +66,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 
 type Scores = Record<string, number>;
 
-type SessionStateContextType = {
+export type SessionStateContextType = {
   scores: Scores;
   getScore: (key: string) => number;
   setScore: (key: string, value: number) => void;
@@ -79,12 +79,9 @@ const SessionStateContext = createContext<SessionStateContextType | undefined>(u
 export function SessionStateProvider({ children }: { children: React.ReactNode }) {
   const [scores, setScores] = useState<Scores>({});
 
-  // Debug: helps detect multiple provider instances or whether this file is loaded
   useEffect(() => {
-    // eslint-disable-next-line no-console
     console.log("[SessionStateProvider] mounted");
     return () => {
-      // eslint-disable-next-line no-console
       console.log("[SessionStateProvider] unmounted");
     };
   }, []);
@@ -100,16 +97,15 @@ export function SessionStateProvider({ children }: { children: React.ReactNode }
   };
 
   return (
-    <SessionStateContext.Provider value={{ scores, getScore, setScore, incScore, resetScore }}>
+    <SessionStateContext.Provider
+      value={{ scores, getScore, setScore, incScore, resetScore }}
+    >
       {children}
     </SessionStateContext.Provider>
   );
 }
 
-// default export for backwards-compatibility
-export default SessionStateProvider;
-
-export function useSessionState() {
+export function useSessionState(): SessionStateContextType {
   const ctx = useContext(SessionStateContext);
   if (!ctx) {
     throw new Error("useSessionState must be used inside SessionStateProvider");
