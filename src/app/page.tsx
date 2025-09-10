@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Lottie from "lottie-react";
-//import arcadeAnimation from "@/assets/animations/arcade.json"; 
-import loadingAnimation from "@/assets/animations/loading.json"; 
-import arcadeAnimation from "@/assets/animations/gamingGeneracional.json"; 
 
+
+const loadingAnimationPath = "/animations/loading.json";
+const arcadeAnimationPath = "/animations/gamingGeneracional.json";
 
 const games = [
   { name: "Memory Match", emoji: "🧠", path: "/games/memory-match" },
@@ -21,22 +21,42 @@ const games = [
 
 export default function GamesLanding() {
   const [loading, setLoading] = useState(true);
+  const [loadingAnimationData, setLoadingAnimationData] = useState<any>(null);
+  const [arcadeAnimationData, setArcadeAnimationData] = useState<any>(null);
 
-  // Simulate loading time (or trigger once data is ready)
+  
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000); 
-    return () => clearTimeout(timer);
+    const loadAnimations = async () => {
+      try {
+        const [loadingRes, arcadeRes] = await Promise.all([
+          fetch(loadingAnimationPath),
+          fetch(arcadeAnimationPath),
+        ]);
+        const [loadingJson, arcadeJson] = await Promise.all([
+          loadingRes.json(),
+          arcadeRes.json(),
+        ]);
+        setLoadingAnimationData(loadingJson);
+        setArcadeAnimationData(arcadeJson);
+
+        // Simulate loading delay
+        setTimeout(() => setLoading(false), 2000);
+      } catch (error) {
+        console.error("Error loading animations:", error);
+        setLoading(false);
+      }
+    };
+
+    loadAnimations();
   }, []);
 
-  if (loading) {
+  // Show loading screen
+  if (loading || !loadingAnimationData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-black">
-        <Lottie
-          animationData={loadingAnimation}
-          loop
-          autoplay
-          className="w-48 h-48"
-        />
+        {loadingAnimationData && (
+          <Lottie animationData={loadingAnimationData} loop autoplay className="w-48 h-48" />
+        )}
         <p className="text-white text-lg mt-4 animate-pulse">
           Loading fun games...
         </p>
@@ -100,10 +120,11 @@ export default function GamesLanding() {
       </div>
 
       {/* 🎬 Lottie Animation Bottom Right */}
-      <div className="absolute bottom-4 right-4 w-36 h-36 pointer-events-none">
-        <Lottie animationData={arcadeAnimation} loop autoplay />
-      </div>
+      {arcadeAnimationData && (
+        <div className="absolute bottom-4 right-4 w-36 h-36 pointer-events-none">
+          <Lottie animationData={arcadeAnimationData} loop autoplay />
+        </div>
+      )}
     </div>
   );
 }
-
