@@ -1,94 +1,255 @@
 // "use client";
 
+// import { useState, useEffect } from "react";
 // import Link from "next/link";
+// import { motion } from "framer-motion";
+// import Lottie from "lottie-react";
+
+
+// const loadingAnimationPath = "/animations/loading.json";
+// const arcadeAnimationPath = "/animations/gamingGeneracional.json";
 
 // const games = [
-//   { name: "Tic-Tac-Toe", path: "/games/tic-tac-toe", emoji: "❌⭕" },
-//   { name: "Memory Match", path: "/games/memory-match", emoji: "🧠" },
-//   { name: "Coloring Book", path: "/games/coloring-book", emoji: "🎨" },
-//   { name: "Jigsaw Puzzle", path: "/games/jigsaw-puzzle", emoji: "🧩" },
-//   { name: "Number Quiz", path: "/games/number-quiz", emoji: "🔢" },
-//   { name: "Typing Game", path: "/games/typing-game", emoji: "⌨️" },
-//   { name: "Maze Run", path: "/games/maze-run", emoji: "🌀" },
-//   { name: "Whack-a-Mole", path: "/games/whack-a-mole", emoji: "🔨" },
-//   { name: "Rock Paper Scissors", path: "/games/rock-paper-scissors", emoji: "✊✋✌️" },
-//   { name: "Balloon Pop", path: "/games/balloon-pop", emoji: "🎈" },
-//   {name: "Plane Simulator", path: "/games/plane-simulator", emoji: "🌀"},
+//   { name: "Memory Match", emoji: "🧠", path: "/games/memory-match" },
+//   { name: "Jigsaw Puzzle", emoji: "🧩", path: "/games/jigsaw-puzzle" },
+//   { name: "Whack-a-Mole", emoji: "🔨", path: "/games/whack-a-mole" },
+//   { name: "Balloon Pop", emoji: "🎈", path: "/games/balloon-pop" },
+//   { name: "Plane Simulator", emoji: "✈️", path: "/games/plane-simulator" },
+//   { name: "Platformer", emoji: "⌨️", path: "/games/platformer" },
+//   { name: "Fruit-Ninja", emoji: "🍉", path: "/games/fruit-ninja" },
 // ];
 
-// export default function Home() {
-//   return (
-//     <div className="p-6 max-w-6xl mx-auto">
-//       <h1 className="text-5xl font-bold text-center mb-6 text-pink-400 drop-shadow-lg">
-//         🎉 Fun Mini Games 🎉
-//       </h1>
-//       <p className="text-center text-gray-300 mb-10 text-lg">
-//         10 quick and fun games for kids (ages 5–10).  
-//         Play, learn, and enjoy — no login required!
-//       </p>
+// export default function GamesLanding() {
+//   const [loading, setLoading] = useState(true);
+//   const [loadingAnimationData, setLoadingAnimationData] = useState<any>(null);
+//   const [arcadeAnimationData, setArcadeAnimationData] = useState<any>(null);
 
-//       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-//         {games.map((game) => (
-//           <Link
+  
+//   useEffect(() => {
+//     const loadAnimations = async () => {
+//       try {
+//         const [loadingRes, arcadeRes] = await Promise.all([
+//           fetch(loadingAnimationPath),
+//           fetch(arcadeAnimationPath),
+//         ]);
+//         const [loadingJson, arcadeJson] = await Promise.all([
+//           loadingRes.json(),
+//           arcadeRes.json(),
+//         ]);
+//         setLoadingAnimationData(loadingJson);
+//         setArcadeAnimationData(arcadeJson);
+
+//         // Simulate loading delay
+//         setTimeout(() => setLoading(false), 2000);
+//       } catch (error) {
+//         console.error("Error loading animations:", error);
+//         setLoading(false);
+//       }
+//     };
+
+//     loadAnimations();
+//   }, []);
+
+//   // Show loading screen
+//   if (loading || !loadingAnimationData) {
+//     return (
+//       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-black">
+//         {loadingAnimationData && (
+//           <Lottie animationData={loadingAnimationData} loop autoplay className="w-48 h-48" />
+//         )}
+//         <p className="text-white text-lg mt-4 animate-pulse">
+//           Loading fun games...
+//         </p>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="relative min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-black text-white flex flex-col items-center overflow-hidden">
+//       {/* Animated background glow orbs */}
+//       <div className="absolute top-20 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
+//       <div className="absolute bottom-20 right-20 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
+
+//       {/* Title */}
+//       <motion.h1
+//         initial={{ opacity: 0, y: -40 }}
+//         animate={{ opacity: 1, y: 0 }}
+//         transition={{ duration: 1 }}
+//         className="text-5xl sm:text-6xl font-extrabold my-10 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-yellow-300"
+//       >
+//         🎮 Kids Arcade
+//       </motion.h1>
+
+//       <motion.p
+//         initial={{ opacity: 0 }}
+//         animate={{ opacity: 1 }}
+//         transition={{ delay: 0.8, duration: 1 }}
+//         className="text-lg text-gray-300 mb-10 px-4 text-center max-w-2xl"
+//       >
+//         Choose your favorite game and start playing! Fun challenges await 🚀
+//       </motion.p>
+
+//       {/* Games Grid */}
+//       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-8 p-6 w-full max-w-6xl">
+//         {games.map((game, index) => (
+//           <motion.div
 //             key={game.name}
-//             href={game.path}
-//             className="bg-gradient-to-br from-pink-500/90 to-purple-600/90 shadow-xl rounded-2xl p-6 text-center hover:scale-110 hover:rotate-1 transition-transform duration-300 border border-pink-300"
+//             initial={{ opacity: 0, scale: 0.8 }}
+//             animate={{ opacity: 1, scale: 1 }}
+//             transition={{ delay: index * 0.1, duration: 0.5 }}
 //           >
-//             <div className="text-5xl mb-3">{game.emoji}</div>
-//             <div className="text-lg font-semibold text-white">{game.name}</div>
-//           </Link>
+//             <Link
+//               href={game.path}
+//               className="group flex flex-col items-center justify-center p-8 rounded-2xl shadow-lg 
+//                          bg-gradient-to-br from-purple-700 to-purple-900 
+//                          hover:scale-110 hover:shadow-pink-500/50 
+//                          transition-transform duration-300"
+//             >
+//               {/* Floating Emoji */}
+//               <motion.span
+//                 animate={{ y: [0, -6, 0] }}
+//                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+//                 className="text-6xl mb-4 group-hover:scale-125 transition-transform duration-300"
+//               >
+//                 {game.emoji}
+//               </motion.span>
+//               <span className="text-lg font-semibold text-center">{game.name}</span>
+//             </Link>
+//           </motion.div>
 //         ))}
 //       </div>
+
+//       {/* 🎬 Lottie Animation Bottom Right */}
+//       {arcadeAnimationData && (
+//         <div className="absolute bottom-4 right-4 w-36 h-36 pointer-events-none">
+//           <Lottie animationData={arcadeAnimationData} loop autoplay />
+//         </div>
+//       )}
 //     </div>
 //   );
 // }
 
+
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import Lottie from "lottie-react";
+
+type LottieAnimationData = Record<string, unknown>; // ✅ Strict type for JSON
+
+const loadingAnimationPath = "/animations/loading.json";
+const arcadeAnimationPath = "/animations/gamingGeneracional.json";
 
 const games = [
-  { name: "Tic-Tac-Toe", emoji: "❌⭕", path: "/games/tic-tac-toe" },
   { name: "Memory Match", emoji: "🧠", path: "/games/memory-match" },
-  { name: "Coloring Book", emoji: "🎨", path: "/games/coloring-book" },
   { name: "Jigsaw Puzzle", emoji: "🧩", path: "/games/jigsaw-puzzle" },
-  { name: "Number Quiz", emoji: "🔢", path: "/games/number-quiz" },
-  { name: "Typing Game", emoji: "⌨️", path: "/games/typing-game" },
-  { name: "Maze Run", emoji: "🌀", path: "/games/maze-run" },
   { name: "Whack-a-Mole", emoji: "🔨", path: "/games/whack-a-mole" },
-  { name: "Rock Paper Scissors", emoji: "✊✋✌️", path: "/games/rock-paper-scissors" },
   { name: "Balloon Pop", emoji: "🎈", path: "/games/balloon-pop" },
   { name: "Plane Simulator", emoji: "✈️", path: "/games/plane-simulator" },
-  {name: "Paltformer", emoji: "⌨️", path: "/games/platformer"},
+  { name: "Platformer", emoji: "⌨️", path: "/games/platformer" },
+  { name: "Fruit-Ninja", emoji: "🍉", path: "/games/fruit-ninja" },
 ];
 
 export default function GamesLanding() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-black text-white flex flex-col items-center">
-      <h1 className="text-4xl font-bold my-8 text-pink-400">Choose a Game 🎮</h1>
+  const [loading, setLoading] = useState(true);
+  const [loadingAnimationData, setLoadingAnimationData] = useState<LottieAnimationData | null>(null);
+  const [arcadeAnimationData, setArcadeAnimationData] = useState<LottieAnimationData | null>(null);
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 p-6 w-full max-w-6xl">
-        {games.map((game) => (
-          <Link
+  useEffect(() => {
+    const loadAnimations = async () => {
+      try {
+        const [loadingRes, arcadeRes] = await Promise.all([
+          fetch(loadingAnimationPath),
+          fetch(arcadeAnimationPath),
+        ]);
+        const [loadingJson, arcadeJson] = await Promise.all([
+          loadingRes.json(),
+          arcadeRes.json(),
+        ]);
+        setLoadingAnimationData(loadingJson);
+        setArcadeAnimationData(arcadeJson);
+
+        setTimeout(() => setLoading(false), 2000);
+      } catch (error) {
+        console.error("Error loading animations:", error);
+        setLoading(false);
+      }
+    };
+
+    loadAnimations();
+  }, []);
+
+  if (loading || !loadingAnimationData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-black">
+        {loadingAnimationData && (
+          <Lottie animationData={loadingAnimationData} loop autoplay className="w-48 h-48" />
+        )}
+        <p className="text-white text-lg mt-4 animate-pulse">
+          Loading fun games...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-black text-white flex flex-col items-center overflow-hidden">
+      <div className="absolute top-20 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
+      <div className="absolute bottom-20 right-20 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
+
+      <motion.h1
+        initial={{ opacity: 0, y: -40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+        className="text-5xl sm:text-6xl font-extrabold my-10 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-yellow-300"
+      >
+        🎮 Kids Arcade
+      </motion.h1>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 1 }}
+        className="text-lg text-gray-300 mb-10 px-4 text-center max-w-2xl"
+      >
+        Choose your favorite game and start playing! Fun challenges await 🚀
+      </motion.p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-8 p-6 w-full max-w-6xl">
+        {games.map((game, index) => (
+          <motion.div
             key={game.name}
-            href={game.path}
-            className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-lg 
-                       bg-gradient-to-br from-purple-700 to-purple-900 
-                       hover:scale-105 transition-transform duration-300"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.1, duration: 0.5 }}
           >
-            <span className="text-5xl mb-4">{game.emoji}</span>
-            <span className="text-lg font-semibold text-center">{game.name}</span>
-          </Link>
+            <Link
+              href={game.path}
+              className="group flex flex-col items-center justify-center p-8 rounded-2xl shadow-lg 
+                         bg-gradient-to-br from-purple-700 to-purple-900 
+                         hover:scale-110 hover:shadow-pink-500/50 
+                         transition-transform duration-300"
+            >
+              <motion.span
+                animate={{ y: [0, -6, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                className="text-6xl mb-4 group-hover:scale-125 transition-transform duration-300"
+              >
+                {game.emoji}
+              </motion.span>
+              <span className="text-lg font-semibold text-center">{game.name}</span>
+            </Link>
+          </motion.div>
         ))}
       </div>
 
-      
+      {arcadeAnimationData && (
+        <div className="absolute bottom-4 right-4 w-36 h-36 pointer-events-none">
+          <Lottie animationData={arcadeAnimationData} loop autoplay />
+        </div>
+      )}
     </div>
   );
 }
-
-
-
-
-
-
