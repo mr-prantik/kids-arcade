@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type Phaser from "phaser";
+import dynamic from "next/dynamic";
+
+const GameOverScreen = dynamic(() => import("@/components/GameOverScreen"), { ssr: false });
 
 const FruitNinja: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
 
   useEffect(() => {
     let PhaserModule: typeof Phaser;
@@ -15,6 +20,12 @@ const FruitNinja: React.FC = () => {
 
       if (gameRef.current) return;
 
+      const parentRef = "fruit-ninja-container";
+      const reactGameOver = (score: number) => {
+        setFinalScore(score);
+        setIsGameOver(true);
+      };
+
       class FruitScene extends PhaserModule.Scene {
         fruits!: Phaser.Physics.Arcade.Group;
         score = 0;
@@ -22,7 +33,7 @@ const FruitNinja: React.FC = () => {
         lives = 3;
         heartIcons: Phaser.GameObjects.Image[] = [];
 
-        // Difficulty control
+        // Difficulty
         spawnDelay = 1800;
         fruitSpeed = 140;
         fruitsAtOnce = 1;
@@ -32,39 +43,32 @@ const FruitNinja: React.FC = () => {
         }
 
         preload() {
-          // Fruits
           this.load.image("apple", "https://labs.phaser.io/assets/sprites/apple.png");
           this.load.image("banana", "https://labs.phaser.io/assets/sprites/banana.png");
           this.load.image("melon", "https://labs.phaser.io/assets/sprites/melon.png");
-
-          // Heart for lives
           this.load.image("heart", "https://labs.phaser.io/assets/ui/heart.png");
         }
 
         create() {
           this.fruits = this.physics.add.group();
 
-          // Score text
           this.scoreText = this.add.text(16, 16, "Score: 0", {
             fontSize: "28px",
             color: "#fff",
           });
 
-          // Lives (hearts)
           for (let i = 0; i < this.lives; i++) {
             const heart = this.add.image(this.scale.width - 40 - i * 40, 30, "heart");
             heart.setScale(1.2);
             this.heartIcons.push(heart);
           }
 
-          // Fruit spawner
           this.time.addEvent({
             delay: this.spawnDelay,
             loop: true,
             callback: () => this.spawnFruit(),
           });
 
-          // Swipe detection
           this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
             const sliced = this.physics.overlapRect(pointer.x, pointer.y, 50, 50);
 
@@ -73,7 +77,6 @@ const FruitNinja: React.FC = () => {
               if (fruit && fruit.active) {
                 fruit.disableBody(true, true);
 
-                // Slice animation
                 this.add.tween({
                   targets: fruit,
                   alpha: 0,
@@ -84,7 +87,6 @@ const FruitNinja: React.FC = () => {
                 this.score += 10;
                 this.scoreText.setText(`Score: ${this.score}`);
 
-                // Difficulty scaling
                 if (this.score % 100 === 0) {
                   this.increaseDifficulty();
                 }
@@ -98,7 +100,6 @@ const FruitNinja: React.FC = () => {
 
           for (let i = 0; i < this.fruitsAtOnce; i++) {
             const choice = PhaserModule.Math.RND.pick(fruitTypes);
-
             const x = PhaserModule.Math.Between(50, this.scale.width - 50);
             const fruit = this.fruits.create(x, -50, choice) as Phaser.Physics.Arcade.Sprite;
 
@@ -109,15 +110,8 @@ const FruitNinja: React.FC = () => {
         }
 
         increaseDifficulty() {
-          // Faster falling fruits
           this.fruitSpeed += 20;
-
-          // More fruits
-          if (this.fruitsAtOnce < 3) {
-            this.fruitsAtOnce++;
-          }
-
-          // Spawn more frequently
+          if (this.fruitsAtOnce < 3) this.fruitsAtOnce++;
           if (this.spawnDelay > 800) {
             this.spawnDelay -= 200;
             this.time.addEvent({
@@ -134,24 +128,22 @@ const FruitNinja: React.FC = () => {
             if (fruit.y > this.scale.height && fruit.active) {
               fruit.disableBody(true, true);
 
-              // Lose a life
               this.lives--;
               const heart = this.heartIcons[this.lives];
               if (heart) heart.setVisible(false);
 
               if (this.lives <= 0) {
                 this.physics.pause();
-                this.scoreText.setText(`Game Over! Final Score: ${this.score}`);
+                reactGameOver(this.score);
               }
             }
           });
         }
       }
 
-      // Create Phaser game instance
       gameRef.current = new PhaserModule.Game({
         type: PhaserModule.AUTO,
-        parent: "fruit-ninja-container",
+        parent: parentRef,
         scale: {
           mode: PhaserModule.Scale.FIT,
           autoCenter: PhaserModule.Scale.CENTER_BOTH,
@@ -160,10 +152,7 @@ const FruitNinja: React.FC = () => {
         },
         physics: {
           default: "arcade",
-          arcade: {
-            gravity: { x: 0, y: 120 }, 
-            debug: false,
-          },
+          arcade: { gravity: { x: 0, y: 120 }, debug: false },
         },
         scene: FruitScene,
         backgroundColor: "#111",
@@ -176,8 +165,18 @@ const FruitNinja: React.FC = () => {
     };
   }, []);
 
-  return <div id="fruit-ninja-container" className="w-full h-screen touch-none" />;
+  const restartGame = () => {
+    setIsGameOver(false);
+    setFinalScore(0);
+    window.location.reload(); // Quick reset (can improve later with scene restart)
+  };
+
+  return (
+    <div className="relative w-full h-screen touch-none">
+      <div id="fruit-ninja-container" className="w-full h-full" />
+      {isGameOver && <GameOverScreen score={finalScore} onRestart={restartGame} />}
+    </div>
+  );
 };
 
 export default FruitNinja;
-
